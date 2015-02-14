@@ -6,6 +6,7 @@ import (
     "net"
     "os"
     "fmt"
+    "strings"
 )
 
 type Command struct {
@@ -13,8 +14,29 @@ type Command struct {
     parameters []string
 }
 
+func handleCommand(command Command) (bool) {
+    if command.command == "quit" {
+        return false 
+    } else {
+        fmt.Println(command.command)
+        return true
+    }
+}
+
 func parseCommandString(commandString string) (Command) {
     var command Command
+    stringFields := strings.Fields(commandString)
+    if len(stringFields) > 0 {
+        command.command = stringFields[0]
+        if len(stringFields) > 1 {
+            command.parameters = stringFields[1:]    
+        } else{
+            command.parameters = nil
+        }
+    } else {
+        // error?
+    }
+    
     return command
 }
 
@@ -31,8 +53,12 @@ func prompt(connection net.Conn) (bool, error) {
         fmt.Print(">> ")
         text, _ := reader.ReadString('\n')
 
-        var _ = parseCommandString(text)
+        command := parseCommandString(text)
+        if !handleCommand(command) {
+            break
+        }
     }
+    return true, nil
 }
 
 func startSession(serverAddress string) {
@@ -42,11 +68,11 @@ func startSession(serverAddress string) {
         log.Fatal(err)
     }
 
-    go prompt(connection)
+    prompt(connection)
 }
 
 func main() {
     args := os.Args[1:]
     log.SetFlags(log.Lshortfile)
-    go startSession(args[0])    
+    startSession(args[0])    
 }
