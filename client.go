@@ -1,34 +1,52 @@
 package main
 
 import (
-    "io"
+    "bufio"
     "log"
     "net"
     "os"
+    "fmt"
 )
 
+type Command struct {
+    command string
+    parameters []string
+}
+
+func parseCommandString(commandString string) (Command) {
+    var command Command
+    return command
+}
+
+func stopSession(connection net.Conn) {
+    err := connection.Close()
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+func prompt(connection net.Conn) (bool, error) {
+    for {
+        reader := bufio.NewReader(os.Stdin)
+        fmt.Print(">> ")
+        text, _ := reader.ReadString('\n')
+
+        var _ = parseCommandString(text)
+    }
+}
+
+func startSession(serverAddress string) {
+    fmt.Println("Connecting to " + serverAddress)
+    connection, err := net.Dial("tcp", serverAddress)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    go prompt(connection)
+}
+
 func main() {
+    args := os.Args[1:]
     log.SetFlags(log.Lshortfile)
-    con, err := net.Dial("tcp", ":7")
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    _, err = io.Copy(con, os.Stdin)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if tcpcon, ok := con.(*net.TCPConn); ok {
-        tcpcon.CloseWrite()
-    }
-
-    _, err = io.Copy(os.Stdout, con)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    err = con.Close()
-    if err != nil {
-        log.Fatal(err)
-    }
+    go startSession(args[0])    
 }
