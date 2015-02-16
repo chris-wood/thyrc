@@ -61,6 +61,20 @@ func prompt(connection net.Conn) (bool, error) {
     return true, nil
 }
 
+func readFromServer(connection net.Conn) {
+    reply := make([]byte, 1024)
+    stayAlive := true 
+    for ; stayAlive ; {
+        stayAlive = true // TODO: read from concurrent channel here
+        var _, err = connection.Read(reply)
+        if err != nil {
+            fmt.Println("Write to server failed:", err.Error())
+            return
+        }
+        fmt.Println("$> " + string(reply))
+    }
+}
+
 func startSession(serverAddress string) {
     fmt.Println("Connecting to " + serverAddress)
     connection, err := net.Dial("tcp", serverAddress)
@@ -68,11 +82,16 @@ func startSession(serverAddress string) {
         log.Fatal(err)
     }
 
+    go readFromServer(connection)
     prompt(connection)
 }
 
 func main() {
     args := os.Args[1:]
+    if len(args) < 1 {
+        fmt.Println("usage: go run client.go <server:port>")
+        return 
+    }
     log.SetFlags(log.Lshortfile)
     startSession(args[0])    
 }
