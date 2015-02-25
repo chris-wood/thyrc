@@ -7,8 +7,12 @@ import (
     "os"
     "fmt"
     "strings"
-    "github.com/jroimartin/gocui"
+//    "github.com/jroimartin/gocui"
 )
+
+//PASS none
+//NICK sorandom29      
+//USER blah blah blah blah
 
 type Command struct {
     command string
