@@ -70,19 +70,39 @@ func prompt(connection net.Conn) (bool, error) {
 func readFromServer(connection net.Conn) {
     reply := make([]byte, 1024)
     stayAlive := true 
+
+	connected := false
+
     for ; stayAlive ; {
         stayAlive = true // TODO: read from concurrent channel here
-        var _, err = connection.Read(reply)
+        _, err := connection.Read(reply)
         if err != nil {
             fmt.Println("Write to server failed:", err.Error())
             return
         }
         fmt.Println("$> " + string(reply))
+
+		if !connected {
+			// pass, nick, user
+			fmt.Println("Sending PASS...") 
+			passCommand := []byte("PASS none\n")
+			connection.Write(passCommand)
+
+			fmt.Println("Sending NICK...")
+			nickCommand := []byte("NICK random\n")
+			connection.Write(nickCommand)
+
+			fmt.Println("Sending USER...")
+			userCommand := []byte("USER rawrrawr blah blah blah\n")
+			connection.Write(userCommand)
+
+			connected = true
+		}
     }
 }
 
 func startSession(serverAddress string) {
-    fmt.Println("Connecting to " + serverAddress)
+    fmt.Println("Connecting to " + serverAddress + "...")
     connection, err := net.Dial("tcp", serverAddress)
     if err != nil {
         log.Fatal(err)
