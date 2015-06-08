@@ -10,6 +10,7 @@ import (
 //    "github.com/jroimartin/gocui"
 )
 
+// startup protocol:
 //PASS none
 //NICK sorandom29      
 //USER blah blah blah blah
@@ -19,7 +20,7 @@ type Command struct {
     parameters []string
 }
 
-func handleCommand(command Command) (bool) {
+func handleCommand(command Command, connection net.Conn) (bool) {
     if command.command == "quit" {
         return false 
     } else {
@@ -59,7 +60,7 @@ func prompt(connection net.Conn) (bool, error) {
         text, _ := reader.ReadString('\n')
 
         command := parseCommandString(text)
-        if !handleCommand(command) {
+        if !handleCommand(command, connection) {
             break
         }
     }
