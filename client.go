@@ -57,7 +57,7 @@ func stopSession(connection net.Conn) {
     }
 }
 
-func prompt(connection net.Conn) (bool, error) {
+func prompt(gui *gocui.Gui, connection net.Conn) (bool, error) {
     for {
         reader := bufio.NewReader(os.Stdin)
         fmt.Print(">> ")
@@ -71,7 +71,7 @@ func prompt(connection net.Conn) (bool, error) {
     return true, nil
 }
 
-func readFromServer(connection net.Conn) {
+func readFromServer(gui *gocui.Gui, connection net.Conn) {
     reply := make([]byte, 1024)
     stayAlive := true 
 
@@ -86,17 +86,21 @@ func readFromServer(connection net.Conn) {
         }
         fmt.Println("$> " + string(reply))
 
+        // Shove the output to the main view
+        // view, err := gui.View("main")
+        // fmt.Fprintf(view, "%s", string(reply))
+
 		if !connected {
 			// pass, nick, user
-			fmt.Println("Sending PASS...") 
+			// fmt.Println("Sending PASS...") 
 			passCommand := []byte("PASS none\n")
 			connection.Write(passCommand)
 
-			fmt.Println("Sending NICK...")
+			// fmt.Println("Sending NICK...")
 			nickCommand := []byte("NICK random\n")
 			connection.Write(nickCommand)
 
-			fmt.Println("Sending USER...")
+			// fmt.Println("Sending USER...")
 			userCommand := []byte("USER rawrrawr blah blah blah\n")
 			connection.Write(userCommand)
 
@@ -105,15 +109,19 @@ func readFromServer(connection net.Conn) {
     }
 }
 
-func startSession(serverAddress string) {
-    fmt.Println("Connecting to " + serverAddress + "...")
+func startSession(gui *gocui.Gui, serverAddress string) error {
+    // fmt.Println("Connecting to " + serverAddress + "...")
     connection, err := net.Dial("tcp", serverAddress)
     if err != nil {
-        log.Fatal(err)
+        return err;
     }
 
-    go readFromServer(connection)
-    prompt(connection)
+    go readFromServer(gui, connection)
+    prompt(gui, connection)
+
+    // fmt.Println("IRC setup, returning to GUI connection")
+
+    return nil
 }
 
 func nextView(g *gocui.Gui, v *gocui.View) error {
@@ -293,12 +301,12 @@ func layout(g *gocui.Gui) error {
         if err != gocui.ErrorUnkView {
             return err
         }
-        b, err := ioutil.ReadFile("Mark.Twain-Tom.Sawyer.txt")
-        if err != nil {
-            panic(err)
-        }
-        fmt.Fprintf(v, "%s", b)
-        v.Editable = true
+        // b, err := ioutil.ReadFile("Mark.Twain-Tom.Sawyer.txt")
+        // if err != nil {
+        //     panic(err)
+        // }
+        // fmt.Fprintf(v, "%s", b)
+        v.Editable = false
         v.Wrap = true
         if err := g.SetCurrentView("main"); err != nil {
             return err
@@ -318,26 +326,28 @@ func main() {
     }
     log.SetFlags(log.Lshortfile)
 
-    var err error
-
-    g := gocui.NewGui()
-    if err := g.Init(); err != nil {
+    gui := gocui.NewGui()
+    if err := gui.Init(); err != nil {
         log.Panicln(err)
     }
-    defer g.Close()
+    defer gui.Close()
 
-    g.SetLayout(layout)
-    if err := keybindings(g); err != nil {
+    gui.SetLayout(layout)
+    if err := keybindings(gui); err != nil {
         log.Panicln(err)
     }
-    g.SelBgColor = gocui.ColorGreen
-    g.SelFgColor = gocui.ColorBlack
-    g.ShowCursor = true
+    gui.SelBgColor = gocui.ColorGreen
+    gui.SelFgColor = gocui.ColorBlack
+    gui.ShowCursor = true
 
-    err = g.MainLoop()
-    if err != nil && err != gocui.Quit {
-        log.Panicln(err)
+    err := startSession(nil, args[0])
+    if err != nil {
+        fmt.Println("Failed.")
+        fmt.Println("Error: " + string(err.Error()))
+    } else {
+        err := gui.MainLoop()
+        if err != nil && err != gocui.Quit {
+            log.Panicln(err)
+        }
     }
-
-    startSession(args[0])
 }
