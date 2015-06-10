@@ -12,13 +12,6 @@ import (
     "github.com/jroimartin/gocui"
 )
 
-// go run client.go irc.freenode.net:6666
-
-// startup protocol:
-//PASS none
-//NICK sorandom29      
-//USER blah blah blah blah
-
 type Command struct {
     command string
     parameters []string
@@ -104,8 +97,7 @@ func prompt(gui *gocui.Gui, connection net.Conn) (bool, error) {
 func readFromServer(gui *gocui.Gui, connection net.Conn) {
     reply := make([]byte, 1024)
     stayAlive := true
-
-	connected := false
+    connected := false
 
     for ; stayAlive ; {
         stayAlive = true // TODO: read from concurrent channel here
@@ -114,15 +106,17 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
             fmt.Println("Write to server failed:", err.Error())
             return
         }
-        // fmt.Println("$> " + string(reply))
 
         // Shove the output to the main view
         view, err := gui.View("main")
         if err != nil {
             log.Fatal("Could not recover handle to the main view.")
         }
-        fmt.Fprintln(view, string(reply)) // TODO: this isn't writing. >.<
-        // fmt.Println(string(reply))
+
+        stringReply := strings.TrimSpace(string(reply))
+        if len(stringReply) > 0{
+            fmt.Fprintln(view, stringReply) // TODO: this isn't writing. >.<
+        }
 
 		if !connected {
 			// pass, nick, user
@@ -143,7 +137,7 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
     }
 }
 
-func startSession(gui *gocui.Gui, serverAddress string) error {
+func startSession(gui *gocui.Gui, serverAddress string) (error) {
     connection, err := net.Dial("tcp", serverAddress)
     if err != nil {
         return err;
@@ -155,14 +149,17 @@ func startSession(gui *gocui.Gui, serverAddress string) error {
     return nil
 }
 
-func nextView(g *gocui.Gui, v *gocui.View) error {
-    if v == nil || v.Name() == "side" {
+func nextView(g *gocui.Gui, v *gocui.View) (error) {
+    if v == nil || v.Name() == "rightside" {
         return g.SetCurrentView("main")
+    } else if v == nil || v.Name() == "main" {
+        return g.SetCurrentView("input")
+    } else {
+        return g.SetCurrentView("rightside")
     }
-    return g.SetCurrentView("side")
 }
 
-func cursorDown(g *gocui.Gui, v *gocui.View) error {
+func cursorDown(g *gocui.Gui, v *gocui.View) (error) {
     if v != nil {
         cx, cy := v.Cursor()
         if err := v.SetCursor(cx, cy+1); err != nil {
@@ -175,7 +172,7 @@ func cursorDown(g *gocui.Gui, v *gocui.View) error {
     return nil
 }
 
-func cursorUp(g *gocui.Gui, v *gocui.View) error {
+func cursorUp(g *gocui.Gui, v *gocui.View) (error) {
     if v != nil {
         ox, oy := v.Origin()
         cx, cy := v.Cursor()
@@ -188,7 +185,7 @@ func cursorUp(g *gocui.Gui, v *gocui.View) error {
     return nil
 }
 
-func cursorLeft(g *gocui.Gui, v *gocui.View) error {
+func cursorLeft(g *gocui.Gui, v *gocui.View) (error) {
     if v != nil {
         ox, oy := v.Origin()
         cx, cy := v.Cursor()
@@ -201,7 +198,7 @@ func cursorLeft(g *gocui.Gui, v *gocui.View) error {
     return nil
 }
 
-func cursorRight(g *gocui.Gui, v *gocui.View) error {
+func cursorRight(g *gocui.Gui, v *gocui.View) (error) {
     if v != nil {
         cx, cy := v.Cursor()
         if err := v.SetCursor(cx+1, cy); err != nil {
@@ -251,7 +248,7 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func keybindings(g *gocui.Gui) error {
-    if err := g.SetKeybinding("side", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
+    if err := g.SetKeybinding("rightside", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
         return err
     }
     if err := g.SetKeybinding("main", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
@@ -272,9 +269,9 @@ func keybindings(g *gocui.Gui) error {
     if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
         return err
     }
-    if err := g.SetKeybinding("side", gocui.KeyEnter, gocui.ModNone, getLine); err != nil {
-        return err
-    }
+    // if err := g.SetKeybinding("side", gocui.KeyEnter, gocui.ModNone, getLine); err != nil {
+    //     return err
+    // }
     if err := g.SetKeybinding("msg", gocui.KeyEnter, gocui.ModNone, delMsg); err != nil {
         return err
     }
@@ -314,28 +311,35 @@ func saveMain(g *gocui.Gui, v *gocui.View) error {
 func layout(g *gocui.Gui) error {
     maxX, maxY := g.Size()
 
-    // left side
-    // if v, err := g.SetView("side", -1, -1, 30, maxY); err != nil {
-    //     if err != gocui.ErrorUnkView {
-    //         return err
-    //     }
-    //     v.Highlight = true
-    //     fmt.Fprintln(v, "Item 1")
-    //     fmt.Fprintln(v, "Item 2")
-    //     fmt.Fprintln(v, "Item 3")
-    //     fmt.Fprint(v, "\rWill be")
-    //     fmt.Fprint(v, "deleted\rItem 4\nItem 5")
-    // }
+    // right side
+    if v, err := g.SetView("rightside", maxX - 30, 0, maxX - 1, maxY - 2); err != nil {
+        if err != gocui.ErrorUnkView {
+            return err
+        }
+        v.Highlight = true
+        fmt.Fprintln(v, "Channel list")
+    }
+
+    if v, err := g.SetView("input", 0, maxY - 2, maxX - 1, maxY - 1); err != nil {
+        if err != gocui.ErrorUnkView {
+            fmt.Println("Error: could not set `main` view")
+            return err
+        }
+
+        v.Editable = true
+        v.Wrap = false
+        v.Highlight = true
+    }
 
     // main side
-    if v, err := g.SetView("main", 0, 0, maxX - 1, maxY - 1); err != nil {
+    if v, err := g.SetView("main", 0, 0, maxX - 30, maxY - 2); err != nil {
         if err != gocui.ErrorUnkView {
             fmt.Println("Error: could not set `main` view")
             return err
         }
 
         v.Editable = false
-        v.Wrap = true
+        v.Wrap = false
 
         if err := g.SetCurrentView("main"); err != nil {
             fmt.Println("couldn't set view to main")
@@ -343,7 +347,7 @@ func layout(g *gocui.Gui) error {
         }
     }
 
-    // TODO: input text field
+    
 
     return nil
 }
