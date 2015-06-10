@@ -114,8 +114,8 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
         }
 
         stringReply := strings.TrimSpace(string(reply))
-        if len(stringReply) > 0{
-            fmt.Fprintln(view, stringReply) // TODO: this isn't writing. >.<
+        if len(stringReply) > 0 {
+            fmt.Fprint(view, stringReply) 
         }
 
 		if !connected {
@@ -311,7 +311,7 @@ func saveMain(g *gocui.Gui, v *gocui.View) error {
 func layout(g *gocui.Gui) error {
     maxX, maxY := g.Size()
 
-    // right side
+    // right side (channel list) 
     if v, err := g.SetView("rightside", maxX - 30, 0, maxX - 1, maxY - 3); err != nil {
         if err != gocui.ErrorUnkView {
             return err
@@ -320,6 +320,7 @@ func layout(g *gocui.Gui) error {
         fmt.Fprintln(v, "Channel list")
     }
 
+    // input field 
     if v, err := g.SetView("input", 0, maxY - 3, maxX - 1, maxY - 1); err != nil {
         if err != gocui.ErrorUnkView {
             fmt.Println("Error: could not set `main` view")
@@ -331,7 +332,7 @@ func layout(g *gocui.Gui) error {
         v.Highlight = true
     }
 
-    // main side
+    // main side 
     if v, err := g.SetView("main", 0, 0, maxX - 30, maxY - 3); err != nil {
         if err != gocui.ErrorUnkView {
             fmt.Println("Error: could not set `main` view")
