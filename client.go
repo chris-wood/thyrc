@@ -24,6 +24,36 @@ type Command struct {
     parameters []string
 }
 
+var (
+    Trace   *log.Logger
+    Info    *log.Logger
+    Warning *log.Logger
+    Error   *log.Logger
+)
+
+func Init(
+    traceHandle io.Writer,
+    infoHandle io.Writer,
+    warningHandle io.Writer,
+    errorHandle io.Writer) {
+
+    Trace = log.New(traceHandle,
+        "TRACE: ",
+        log.Ldate|log.Ltime|log.Lshortfile)
+
+    Info = log.New(infoHandle,
+        "INFO: ",
+        log.Ldate|log.Ltime|log.Lshortfile)
+
+    Warning = log.New(warningHandle,
+        "WARNING: ",
+        log.Ldate|log.Ltime|log.Lshortfile)
+
+    Error = log.New(errorHandle,
+        "ERROR: ",
+        log.Ldate|log.Ltime|log.Lshortfile)
+}
+
 func handleCommand(command Command, connection net.Conn) (bool) {
     if command.command == "quit" {
         return false 
@@ -73,7 +103,7 @@ func prompt(gui *gocui.Gui, connection net.Conn) (bool, error) {
 
 func readFromServer(gui *gocui.Gui, connection net.Conn) {
     reply := make([]byte, 1024)
-    stayAlive := true 
+    stayAlive := true
 
 	connected := false
 
@@ -84,11 +114,15 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
             fmt.Println("Write to server failed:", err.Error())
             return
         }
-        fmt.Println("$> " + string(reply))
+        // fmt.Println("$> " + string(reply))
 
         // Shove the output to the main view
-        // view, err := gui.View("main")
-        // fmt.Fprintf(view, "%s", string(reply))
+        view, err := gui.View("main")
+        if err != nil {
+            log.Fatal("Could not recover handle to the main view.")
+        }
+        fmt.Fprintln(view, string(reply)) // TODO: this isn't writing. >.<
+        // fmt.Println(string(reply))
 
 		if !connected {
 			// pass, nick, user
@@ -104,22 +138,19 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
 			userCommand := []byte("USER rawrrawr blah blah blah\n")
 			connection.Write(userCommand)
 
-			connected = true
+			connected = true // don't connect again
 		}
     }
 }
 
 func startSession(gui *gocui.Gui, serverAddress string) error {
-    // fmt.Println("Connecting to " + serverAddress + "...")
     connection, err := net.Dial("tcp", serverAddress)
     if err != nil {
         return err;
     }
 
     go readFromServer(gui, connection)
-    prompt(gui, connection)
-
-    // fmt.Println("IRC setup, returning to GUI connection")
+    // go prompt(gui, connection)
 
     return nil
 }
@@ -284,31 +315,30 @@ func layout(g *gocui.Gui) error {
     maxX, maxY := g.Size()
 
     // left side
-    if v, err := g.SetView("side", -1, -1, 30, maxY); err != nil {
-        if err != gocui.ErrorUnkView {
-            return err
-        }
-        v.Highlight = true
-        fmt.Fprintln(v, "Item 1")
-        fmt.Fprintln(v, "Item 2")
-        fmt.Fprintln(v, "Item 3")
-        fmt.Fprint(v, "\rWill be")
-        fmt.Fprint(v, "deleted\rItem 4\nItem 5")
-    }
+    // if v, err := g.SetView("side", -1, -1, 30, maxY); err != nil {
+    //     if err != gocui.ErrorUnkView {
+    //         return err
+    //     }
+    //     v.Highlight = true
+    //     fmt.Fprintln(v, "Item 1")
+    //     fmt.Fprintln(v, "Item 2")
+    //     fmt.Fprintln(v, "Item 3")
+    //     fmt.Fprint(v, "\rWill be")
+    //     fmt.Fprint(v, "deleted\rItem 4\nItem 5")
+    // }
 
     // main side
-    if v, err := g.SetView("main", 30, -1, maxX, maxY); err != nil {
+    if v, err := g.SetView("main", 0, 0, maxX - 1, maxY - 1); err != nil {
         if err != gocui.ErrorUnkView {
+            fmt.Println("Error: could not set `main` view")
             return err
         }
-        // b, err := ioutil.ReadFile("Mark.Twain-Tom.Sawyer.txt")
-        // if err != nil {
-        //     panic(err)
-        // }
-        // fmt.Fprintf(v, "%s", b)
+
         v.Editable = false
         v.Wrap = true
+
         if err := g.SetCurrentView("main"); err != nil {
+            fmt.Println("couldn't set view to main")
             return err
         }
     }
@@ -324,6 +354,7 @@ func main() {
         fmt.Println("usage: go run client.go <server:port>")
         return 
     }
+
     log.SetFlags(log.Lshortfile)
 
     gui := gocui.NewGui()
@@ -340,12 +371,12 @@ func main() {
     gui.SelFgColor = gocui.ColorBlack
     gui.ShowCursor = true
 
-    err := startSession(nil, args[0])
+    err := startSession(gui, args[0])
     if err != nil {
         fmt.Println("Failed.")
         fmt.Println("Error: " + string(err.Error()))
     } else {
-        err := gui.MainLoop()
+        err = gui.MainLoop()
         if err != nil && err != gocui.Quit {
             log.Panicln(err)
         }
