@@ -312,7 +312,7 @@ func layout(g *gocui.Gui) error {
     maxX, maxY := g.Size()
 
     // right side
-    if v, err := g.SetView("rightside", maxX - 30, 0, maxX - 1, maxY - 2); err != nil {
+    if v, err := g.SetView("rightside", maxX - 30, 0, maxX - 1, maxY - 3); err != nil {
         if err != gocui.ErrorUnkView {
             return err
         }
@@ -320,7 +320,7 @@ func layout(g *gocui.Gui) error {
         fmt.Fprintln(v, "Channel list")
     }
 
-    if v, err := g.SetView("input", 0, maxY - 2, maxX - 1, maxY - 1); err != nil {
+    if v, err := g.SetView("input", 0, maxY - 3, maxX - 1, maxY - 1); err != nil {
         if err != gocui.ErrorUnkView {
             fmt.Println("Error: could not set `main` view")
             return err
@@ -332,7 +332,7 @@ func layout(g *gocui.Gui) error {
     }
 
     // main side
-    if v, err := g.SetView("main", 0, 0, maxX - 30, maxY - 2); err != nil {
+    if v, err := g.SetView("main", 0, 0, maxX - 30, maxY - 3); err != nil {
         if err != gocui.ErrorUnkView {
             fmt.Println("Error: could not set `main` view")
             return err
