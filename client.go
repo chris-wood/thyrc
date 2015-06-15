@@ -360,6 +360,13 @@ func main() {
         return 
     }
 
+    file, err := os.OpenFile("client.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+    if err != nil {
+        log.Fatalf("error opening file: %v", err)
+    }
+    defer file.Close()
+
+    log.SetOutput(file)
     log.SetFlags(log.Lshortfile)
 
     gui := gocui.NewGui()
@@ -376,7 +383,7 @@ func main() {
     gui.SelFgColor = gocui.ColorBlack
     gui.ShowCursor = true
 
-    err := startSession(gui, args[0])
+    err = startSession(gui, args[0])
     if err != nil {
         fmt.Println("Failed.")
         fmt.Println("Error: " + string(err.Error()))
