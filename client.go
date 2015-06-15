@@ -354,26 +354,34 @@ func layout(g *gocui.Gui) error {
 }
 
 func main() {
-    args := os.Args[1:]
-    if len(args) < 1 {
-        fmt.Println("usage: go run client.go <server:port>")
-        return 
-    }
-
     file, err := os.OpenFile("client.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
     if err != nil {
         log.Fatalf("error opening file: %v", err)
     }
     defer file.Close()
-
     log.SetOutput(file)
-    log.SetFlags(log.Lshortfile)
+
+    fmt.Fprintln(os.Stderr, "Setup the log")
+
+    args := os.Args[1:]
+    if len(args) < 1 {
+        fmt.Println("usage: go run client.go <server:port>")
+        log.Fatalf("usage")
+    }
+
+    fmt.Fprintln(os.Stderr, "Got the arguments, setting up the GUI")
 
     gui := gocui.NewGui()
-    if err := gui.Init(); err != nil {
-        log.Panicln(err)
+    fmt.Fprintln(os.Stderr, "Initializing.")
+    err = gui.Init();
+    fmt.Fprintln(os.Stderr, "Checking for failure.")
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Error during initialization: %s", err)
+        // log.Panicln(err)
     }
     defer gui.Close()
+
+    fmt.Fprintln(os.Stderr, "Setup the GUI")
 
     gui.SetLayout(layout)
     if err := keybindings(gui); err != nil {
