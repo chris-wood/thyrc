@@ -377,7 +377,7 @@ func main() {
     fmt.Fprintln(os.Stderr, "Checking for failure.")
     if err != nil {
         fmt.Fprintln(os.Stderr, "Error during initialization: %s", err)
-        // log.Panicln(err)
+        log.Panicln(err)
     }
     defer gui.Close()
 
@@ -393,8 +393,8 @@ func main() {
 
     err = startSession(gui, args[0])
     if err != nil {
-        fmt.Println("Failed.")
-        fmt.Println("Error: " + string(err.Error()))
+        fmt.Fprintln(os.Stderr, "Failed.")
+        fmt.Fprintln(os.Stderr, "Error: " + string(err.Error()))
     } else {
         err = gui.MainLoop()
         if err != nil && err != gocui.Quit {
