@@ -98,12 +98,16 @@ func ircHandler(channelFromServer chan string, channelToServer chan string) {
             channelToServer <- "USER rawrrawr blah blah blah\n"
             connected = true // don't connect again
         } else {
+            // Read and display the server response
             response := <-channelFromServer
             fmt.Println(response)
+
+            // Read from stdin
             fmt.Scanln(msgToSend)
             channelToServer <- msgToSend
+
+            // Reset the message to send
             msgToSend = ""
-            time.Sleep(time.Second)
         }
     }
 
