@@ -17,36 +17,6 @@ type Command struct {
     parameters []string
 }
 
-var (
-    Trace   *log.Logger
-    Info    *log.Logger
-    Warning *log.Logger
-    Error   *log.Logger
-)
-
-func Init(
-    traceHandle io.Writer,
-    infoHandle io.Writer,
-    warningHandle io.Writer,
-    errorHandle io.Writer) {
-
-    Trace = log.New(traceHandle,
-        "TRACE: ",
-        log.Ldate|log.Ltime|log.Lshortfile)
-
-    Info = log.New(infoHandle,
-        "INFO: ",
-        log.Ldate|log.Ltime|log.Lshortfile)
-
-    Warning = log.New(warningHandle,
-        "WARNING: ",
-        log.Ldate|log.Ltime|log.Lshortfile)
-
-    Error = log.New(errorHandle,
-        "ERROR: ",
-        log.Ldate|log.Ltime|log.Lshortfile)
-}
-
 func handleCommand(command Command, connection net.Conn) (bool) {
     if command.command == "quit" {
         return false 
@@ -115,7 +85,10 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
 
         stringReply := strings.TrimSpace(string(reply))
         if len(stringReply) > 0 {
+            // fmt.Println(stringReply)
+            // view.Clear()
             fmt.Fprint(view, stringReply) 
+            gui.Flush()
         }
 
 		if !connected {
@@ -272,39 +245,10 @@ func keybindings(g *gocui.Gui) error {
     // if err := g.SetKeybinding("side", gocui.KeyEnter, gocui.ModNone, getLine); err != nil {
     //     return err
     // }
-    if err := g.SetKeybinding("msg", gocui.KeyEnter, gocui.ModNone, delMsg); err != nil {
+    if err := g.SetKeybinding("input", gocui.KeyEnter, gocui.ModNone, delMsg); err != nil {
         return err
     }
 
-    if err := g.SetKeybinding("main", gocui.KeyCtrlS, gocui.ModNone, saveMain); err != nil {
-        return err
-    }
-    return nil
-}
-
-func saveMain(g *gocui.Gui, v *gocui.View) error {
-    f, err := ioutil.TempFile("", "gocui_demo_")
-    if err != nil {
-        return err
-    }
-    defer f.Close()
-
-    p := make([]byte, 5)
-    v.Rewind()
-    for {
-        n, err := v.Read(p)
-        if n > 0 {
-            if _, err := f.Write(p[:n]); err != nil {
-                return err
-            }
-        }
-        if err == io.EOF {
-            break
-        }
-        if err != nil {
-            return err
-        }
-    }
     return nil
 }
 
@@ -341,14 +285,13 @@ func layout(g *gocui.Gui) error {
 
         v.Editable = false
         v.Wrap = false
+        fmt.Fprintln(v, "Here we go...")
 
         if err := g.SetCurrentView("main"); err != nil {
             fmt.Println("couldn't set view to main")
             return err
         }
     }
-
-    
 
     return nil
 }
