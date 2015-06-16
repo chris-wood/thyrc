@@ -1,14 +1,12 @@
 package main
 
 import (
-    "bufio"
+    "time"
     "log"
     "net"
     "os"
     "fmt"
     "strings"
-    "io"
-    "io/ioutil"
     "github.com/jroimartin/gocui"
 )
 
@@ -50,24 +48,9 @@ func stopSession(connection net.Conn) {
     }
 }
 
-func prompt(gui *gocui.Gui, connection net.Conn) (bool, error) {
-    for {
-        reader := bufio.NewReader(os.Stdin)
-        fmt.Print(">> ")
-        text, _ := reader.ReadString('\n')
-
-        command := parseCommandString(text)
-        if !handleCommand(command, connection) {
-            break
-        }
-    }
-    return true, nil
-}
-
-func readFromServer(gui *gocui.Gui, connection net.Conn) {
+func serverReadAndWrite(channelFromServer chan string, channelToServer chan string, connection net.Conn) {
     reply := make([]byte, 1024)
     stayAlive := true
-    connected := false
 
     for ; stayAlive ; {
         stayAlive = true // TODO: read from concurrent channel here
@@ -77,47 +60,77 @@ func readFromServer(gui *gocui.Gui, connection net.Conn) {
             return
         }
 
-        // Shove the output to the main view
-        view, err := gui.View("main")
-        if err != nil {
-            log.Fatal("Could not recover handle to the main view.")
-        }
+        // channelFromServer <- strings.TrimSpace(string(reply))
+        response := strings.TrimSpace(string(reply))
+        log.Println(response)
+        fmt.Println(response)
+        select {
+            case msgToSend, ok := <-channelToServer:
+                if ok {
+                    log.Println("Sending: " + msgToSend)
+                    rawBytes := []byte(msgToSend)
+                    connection.Write(rawBytes)
+                } else {
+                    time.Sleep(time.Second)
+                }
+            default:
+                continue
+            }
 
-        stringReply := strings.TrimSpace(string(reply))
-        if len(stringReply) > 0 {
-            // fmt.Println(stringReply)
-            // view.Clear()
-            fmt.Fprint(view, stringReply) 
-            gui.Flush()
-        }
-
-		if !connected {
-			// pass, nick, user
-			// fmt.Println("Sending PASS...") 
-			passCommand := []byte("PASS none\n")
-			connection.Write(passCommand)
-
-			// fmt.Println("Sending NICK...")
-			nickCommand := []byte("NICK random\n")
-			connection.Write(nickCommand)
-
-			// fmt.Println("Sending USER...")
-			userCommand := []byte("USER rawrrawr blah blah blah\n")
-			connection.Write(userCommand)
-
-			connected = true // don't connect again
-		}
+        // // Shove the output to the main view
+        // view, err := gui.View("main")
+        // if err != nil {
+        //     log.Fatal("Could not recover handle to the main view.")
+        // }
     }
 }
 
-func startSession(gui *gocui.Gui, serverAddress string) (error) {
+func ircHandler(channelFromServer chan string, channelToServer chan string) {
+    alive := true
+    msgToSend := ""
+    connected := false
+
+    for ; alive ; {
+
+        if !connected {
+            channelToServer <- "PASS none\n"
+            channelToServer <- "NICK random\n"
+            channelToServer <- "USER rawrrawr blah blah blah\n"
+            connected = true // don't connect again
+        } else {
+            response := <-channelFromServer
+            fmt.Println(response)
+            fmt.Scanln(msgToSend)
+            channelToServer <- msgToSend
+            msgToSend = ""
+            time.Sleep(time.Second)
+        }
+    }
+
+    // stringReply := strings.TrimSpace(string(reply))
+    // if len(stringReply) > 0 {
+    //     // fmt.Println(stringReply)
+    //     // view.Clear()
+    //     fmt.Fprintln(view, stringReply) 
+    //     gui.Flush()
+    // }
+}
+
+func runSession(gui *gocui.Gui, serverAddress string) (error) {
     connection, err := net.Dial("tcp", serverAddress)
     if err != nil {
         return err;
     }
 
-    go readFromServer(gui, connection)
-    // go prompt(gui, connection)
+    channelFromServer := make(chan string)
+    channelToServer := make(chan string)
+    killChannel := make(chan int)
+
+    go serverReadAndWrite(channelFromServer, channelToServer, connection)
+    go ircHandler(channelFromServer, channelToServer)
+
+    <-killChannel // block until killed
+    stopSession(connection)
 
     return nil
 }
@@ -277,14 +290,14 @@ func layout(g *gocui.Gui) error {
     }
 
     // main side 
-    if v, err := g.SetView("main", 0, 0, maxX - 30, maxY - 3); err != nil {
+    if v, err := g.SetView("main", 10, 0, maxX - 20, maxY - 3); err != nil {
         if err != gocui.ErrorUnkView {
             fmt.Println("Error: could not set `main` view")
             return err
         }
 
         v.Editable = false
-        v.Wrap = false
+        v.Wrap = true
         fmt.Fprintln(v, "Here we go...")
 
         if err := g.SetCurrentView("main"); err != nil {
@@ -314,34 +327,34 @@ func main() {
 
     fmt.Fprintln(os.Stderr, "Got the arguments, setting up the GUI")
 
-    gui := gocui.NewGui()
-    fmt.Fprintln(os.Stderr, "Initializing.")
-    err = gui.Init();
-    fmt.Fprintln(os.Stderr, "Checking for failure.")
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Error during initialization: %s", err)
-        log.Panicln(err)
-    }
-    defer gui.Close()
+    // gui := gocui.NewGui()
+    // fmt.Fprintln(os.Stderr, "Initializing.")
+    // err = gui.Init();
+    // fmt.Fprintln(os.Stderr, "Checking for failure.")
+    // if err != nil {
+    //     fmt.Fprintln(os.Stderr, "Error during initialization: %s", err)
+    //     log.Panicln(err)
+    // }
+    // defer gui.Close()
 
-    fmt.Fprintln(os.Stderr, "Setup the GUI")
+    // fmt.Fprintln(os.Stderr, "Setup the GUI")
 
-    gui.SetLayout(layout)
-    if err := keybindings(gui); err != nil {
-        log.Panicln(err)
-    }
-    gui.SelBgColor = gocui.ColorGreen
-    gui.SelFgColor = gocui.ColorBlack
-    gui.ShowCursor = true
+    // gui.SetLayout(layout)
+    // if err := keybindings(gui); err != nil {
+    //     log.Panicln(err)
+    // }
+    // gui.SelBgColor = gocui.ColorGreen
+    // gui.SelFgColor = gocui.ColorBlack
+    // gui.ShowCursor = true
 
-    err = startSession(gui, args[0])
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Failed.")
-        fmt.Fprintln(os.Stderr, "Error: " + string(err.Error()))
-    } else {
-        err = gui.MainLoop()
-        if err != nil && err != gocui.Quit {
-            log.Panicln(err)
-        }
-    }
+    err = runSession(nil, args[0])
+    // if err != nil {
+    //     fmt.Fprintln(os.Stderr, "Failed.")
+    //     fmt.Fprintln(os.Stderr, "Error: " + string(err.Error()))
+    // } else {
+    //     err = gui.MainLoop()
+    //     if err != nil && err != gocui.Quit {
+    //         log.Panicln(err)
+    //     }
+    // }
 }
