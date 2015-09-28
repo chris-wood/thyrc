@@ -154,8 +154,6 @@ func main() {
         log.Fatalf("usage")
     }
 
-    fmt.Fprintln(os.Stderr, "Got the arguments, setting up the GUI")
-
     err = runSession(args[0])
     if err != nil {
         fmt.Fprintln(os.Stderr, "Failed.")
