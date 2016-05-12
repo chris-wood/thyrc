@@ -1,7 +1,7 @@
 package main
 
 import (
-    "time"
+    // "time"
     "log"
     "net"
     "os"
@@ -55,14 +55,15 @@ func serverReadAndWrite(channelFromServer chan string, channelToServer chan stri
         stayAlive = true // TODO: read from concurrent channel here
         _, err := connection.Read(reply)
         if err != nil {
-            fmt.Println("Write to server failed:", err.Error())
+            fmt.Println("Read from server failed:", err.Error())
             return
         }
 
-        // channelFromServer <- strings.TrimSpace(string(reply))
+        channelFromServer <-strings.TrimSpace(string(reply))
         response := strings.TrimSpace(string(reply))
         log.Println(response)
         fmt.Println(response)
+
         select {
             case msgToSend, ok := <-channelToServer:
                 if ok {
@@ -70,7 +71,7 @@ func serverReadAndWrite(channelFromServer chan string, channelToServer chan stri
                     rawBytes := []byte(msgToSend)
                     connection.Write(rawBytes)
                 } else {
-                    time.Sleep(time.Second)
+                    // time.Sleep(time.Second)
                 }
             default:
                 continue
@@ -90,7 +91,6 @@ func ircHandler(channelFromServer chan string, channelToServer chan string) {
     connected := false
 
     for ; alive ; {
-
         if !connected {
             channelToServer <- "PASS none\n"
             channelToServer <- "NICK random\n"
