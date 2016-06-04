@@ -2,11 +2,6 @@ package message
 
 import (
     // "time"
-    "log"
-    "net"
-    "os"
-    "fmt"
-    "strings"
 )
 
 type Message struct {
@@ -46,16 +41,16 @@ func parseMessage(message string) *Message {
     return parseMessageAsBytes([]byte(message))
 }
 
-// New creates a new instance of the Message object.
-func New(messageString string) *Message {
+// Parse a message string and create a new instance of the Message object.
+func Parse(messageString string) *Message {
 	return parseMessage(messageString)
 }
 
 // New creates a new instance of the Message object.
 func New(prefix string, command string, parameters []string) *Message {
 	return &Message{
-        Prefix = prefix
-        Command = command
-        Parameters = parameters
+        Prefix: prefix,
+        Command: command,
+        Parameters: parameters,
     }
 }
