@@ -4,7 +4,6 @@ import (
     // "time"
     "log"
     "net"
-    "os"
     "fmt"
     "strings"
 )
@@ -86,31 +85,32 @@ func ircHandler(channelFromServer chan string, channelToServer chan string) {
             msgToSend = ""
         }
     }
-
-    // stringReply := strings.TrimSpace(string(reply))
-    // if len(stringReply) > 0 {
-    //     // fmt.Println(stringReply)
-    //     // view.Clear()
-    //     fmt.Fprintln(view, stringReply)
-    //     gui.Flush()
-    // }
 }
 
-func runSession(serverAddress string) (error) {
+func connectToServer(serverAddress string) (net.Conn, error) {
     connection, err := net.Dial("tcp", serverAddress)
+    if err != nil {
+        return nil, err;
+    }
+
+    return connection, err
+}
+
+func (*Client) RunSession(serverAddress string) (error) {
+    _, err := connectToServer(serverAddress)
     if err != nil {
         return err;
     }
 
-    channelFromServer := make(chan string)
-    channelToServer := make(chan string)
-    killChannel := make(chan int)
+    // channelFromServer := make(chan string)
+    // channelToServer := make(chan string)
+    // killChannel := make(chan int)
 
-    go serverReadAndWrite(channelFromServer, channelToServer, connection)
-    go ircHandler(channelFromServer, channelToServer)
+    // go serverReadAndWrite(channelFromServer, channelToServer, connection)
+    // go ircHandler(channelFromServer, channelToServer)
 
-    <-killChannel // block until killed
-    stopSession(connection)
+    // <-killChannel // block until killed
+    // stopSession(connection)
 
     return nil
 }

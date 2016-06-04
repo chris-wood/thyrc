@@ -24,6 +24,11 @@ func main() {
         log.Fatalf("usage")
     }
 
+    client := client.New();
+
+    serverAddress := args[0]
+    client.RunSession(serverAddress)
+
     // err = runSession(args[0])
     // if err != nil {
     //     fmt.Fprintln(os.Stderr, "Failed.")
