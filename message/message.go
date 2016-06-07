@@ -3,6 +3,7 @@ package message
 import (
     // "time"
     "fmt"
+    "strings"
 )
 
 type Message struct {
@@ -19,13 +20,12 @@ func (e MessageError) Error() string {
     return e.message
 }
 
-func parseMessageParameters(message []byte) ([]string, error) {
-    list := make([]string, 1)
-
-    return list, nil
+func parseMessageParameters(message string) ([]string, error) {
+    trimmedMessage := strings.TrimSpace(strings.Replace(message, "  ", " ", -1))
+    return strings.Split(trimmedMessage, " "), nil
 }
 
-func parseMessageCommand(message []byte) (string, error) {
+func parseMessageCommand(message string) (string, error) {
     length := len(message)
     for i := 0; i < length; i++ {
         if message[i] == ' ' {
@@ -35,11 +35,11 @@ func parseMessageCommand(message []byte) (string, error) {
     return "", MessageError{"Could not parse a command"}
 }
 
-func parseMessagePrefix(message []byte) string {
+func parseMessagePrefix(message string) string {
     return ""
 }
 
-func parseMessageAsBytes(message []byte) *Message {
+func parseMessage(message string) *Message {
     msg := new(Message)
 
     if message[0] == ':' {
@@ -53,7 +53,7 @@ func parseMessageAsBytes(message []byte) *Message {
         fmt.Println("Error parsing command")
     }
 
-    parameters, paramError := parseMessageParameters(message[len(msg.Command):])
+    parameters, paramError := parseMessageParameters(message[len(msg.Command) + 1:])
     if paramError == nil {
         msg.Parameters = parameters
     } else {
@@ -61,10 +61,6 @@ func parseMessageAsBytes(message []byte) *Message {
     }
 
     return msg
-}
-
-func parseMessage(message string) *Message {
-    return parseMessageAsBytes([]byte(message))
 }
 
 // Parse a message string and create a new instance of the Message object.
