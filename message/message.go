@@ -76,3 +76,13 @@ func New(prefix string, command string, parameters []string) *Message {
         Parameters: parameters,
     }
 }
+
+func (m *Message) Encode() string {
+    result := m.Command
+    for _, param := range(m.Parameters) {
+        result += " " + param
+    }
+    result += "\n"
+
+    return result;
+}

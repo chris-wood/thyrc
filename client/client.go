@@ -1,14 +1,13 @@
 package client
 
 import (
-    // "time"
-    "log"
-    "net"
     "fmt"
-    "strings"
+    "github.com/chris-wood/thyrc/message"
 )
 
 type Client struct {
+    inputChannel chan *message.Message
+    outputChannel chan *message.Message
 }
 
 // New creates a new instance of the Client object.
@@ -16,101 +15,24 @@ func New() *Client {
 	return &Client{}
 }
 
-func stopSession(connection net.Conn) {
-    err := connection.Close()
-    if err != nil {
-        log.Fatal(err)
-    }
+func (c *Client) Connect(inputChannel, outputChannel chan *message.Message) {
+    c.inputChannel = inputChannel
+    c.outputChannel = outputChannel
+
+    passMessage := message.Parse("PASS dsasdasdas")
+    nickMessage := message.Parse("NICK asdasdasdad")
+    userMessage := message.Parse("USER blahblah blah blah blah")
+
+    inputChannel <- passMessage
+    inputChannel <- nickMessage
+    inputChannel <- userMessage
+
+    fmt.Println("Sent connection parameters")
 }
 
-func serverReadAndWrite(channelFromServer chan string, channelToServer chan string, connection net.Conn) {
-    reply := make([]byte, 1024)
-    stayAlive := true
-
-    for ; stayAlive ; {
-        stayAlive = true // TODO: read from concurrent channel here
-        _, err := connection.Read(reply)
-        if err != nil {
-            fmt.Println("Read from server failed:", err.Error())
-            return
-        }
-
-        channelFromServer <-strings.TrimSpace(string(reply))
-        response := strings.TrimSpace(string(reply))
-        log.Println(response)
-        fmt.Println(response)
-
-        select {
-            case msgToSend, ok := <-channelToServer:
-                if ok {
-                    log.Println("Sending: " + msgToSend)
-                    rawBytes := []byte(msgToSend)
-                    connection.Write(rawBytes)
-                } else {
-                    // time.Sleep(time.Second)
-                }
-            default:
-                continue
-            }
-
-        // // Shove the output to the main view
-        // view, err := gui.View("main")
-        // if err != nil {
-        //     log.Fatal("Could not recover handle to the main view.")
-        // }
+func (c *Client) Run() {
+    for {
+        msg := <-c.outputChannel
+        fmt.Println(msg.Encode())
     }
-}
-
-func ircHandler(channelFromServer chan string, channelToServer chan string) {
-    alive := true
-    msgToSend := ""
-    connected := false
-
-    for ; alive ; {
-        if !connected {
-            channelToServer <- "PASS none\n"
-            channelToServer <- "NICK random\n"
-            channelToServer <- "USER rawrrawr blah blah blah\n"
-            connected = true // don't connect again
-        } else {
-            // Read and display the server response
-            response := <-channelFromServer
-            fmt.Println(response)
-
-            // Read from stdin
-            fmt.Scanln(msgToSend)
-            channelToServer <- msgToSend
-
-            // Reset the message to send
-            msgToSend = ""
-        }
-    }
-}
-
-func connectToServer(serverAddress string) (net.Conn, error) {
-    connection, err := net.Dial("tcp", serverAddress)
-    if err != nil {
-        return nil, err;
-    }
-
-    return connection, err
-}
-
-func (*Client) RunSession(serverAddress string) (error) {
-    _, err := connectToServer(serverAddress)
-    if err != nil {
-        return err;
-    }
-
-    // channelFromServer := make(chan string)
-    // channelToServer := make(chan string)
-    // killChannel := make(chan int)
-
-    // go serverReadAndWrite(channelFromServer, channelToServer, connection)
-    // go ircHandler(channelFromServer, channelToServer)
-
-    // <-killChannel // block until killed
-    // stopSession(connection)
-
-    return nil
 }

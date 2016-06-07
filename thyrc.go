@@ -6,6 +6,7 @@ import (
     "os"
     "fmt"
     "github.com/chris-wood/thyrc/client"
+    "github.com/chris-wood/thyrc/server"
 )
 
 func main() {
@@ -24,10 +25,19 @@ func main() {
         log.Fatalf("usage")
     }
 
-    client := client.New();
+    // Create the client for this server
+    client := client.New()
 
+    // Open a connection to the server
     serverAddress := args[0]
-    client.RunSession(serverAddress)
+    server := server.New(serverAddress)
+
+    // Retrieve the server channels
+    input, output := server.MakeChannels()
+
+    // Run the client
+    client.Connect(input, output)
+    client.Run()
 
     // err = runSession(args[0])
     // if err != nil {
