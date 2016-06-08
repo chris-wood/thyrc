@@ -3,6 +3,7 @@ package server
 import (
     // "time"
     "net"
+    "bufio"
     // "fmt"
     "github.com/chris-wood/thyrc/channel"
     "github.com/chris-wood/thyrc/message"
@@ -11,6 +12,7 @@ import (
 type Server struct {
     address string
     connection net.Conn
+    reader *bufio.Reader
     inputChannel chan *message.Message
     outputChannel chan *message.Message
     channels []*channel.Channel
@@ -22,8 +24,9 @@ func New(address string) *Server {
     if err != nil {
         return nil;
     }
+    reader := bufio.NewReader(connection)
 
-	return &Server{address: address, connection: connection}
+	return &Server{address: address, connection: connection, reader: reader}
 }
 
 func (s *Server) MakeChannels() (chan *message.Message, chan *message.Message) {
@@ -51,9 +54,8 @@ func (s *Server) Write() error {
 }
 
 func (s *Server) Read() {
-    reply := make([]byte, 1024)
     for {
-        _, err := s.connection.Read(reply)
+        reply, err := s.reader.ReadString('\n')
         if err != nil {
             // TODO: do what?
         }

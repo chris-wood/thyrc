@@ -12,6 +12,8 @@ type Message struct {
     Parameters []string
 }
 
+// TODO: add the message reply here
+
 type MessageError struct {
     message string
 }

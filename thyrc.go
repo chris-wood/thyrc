@@ -26,7 +26,7 @@ func main() {
     }
 
     // Create the client for this server
-    client := client.New()
+    client := client.New("nonick", "nopass")
 
     // Open a connection to the server
     serverAddress := args[0]
