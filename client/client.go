@@ -43,6 +43,6 @@ func (c *Client) Connect(inputChannel, outputChannel chan *message.Message) {
 func (c *Client) Run() {
     for {
         msg := <-c.outputChannel
-        fmt.Println(msg.Encode())
+        fmt.Println(msg)
     }
 }

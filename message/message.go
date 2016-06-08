@@ -88,3 +88,7 @@ func (m *Message) Encode() string {
 
     return result;
 }
+
+func (m *Message) String() string {
+        return m.Command + " " + strings.Join(m.Parameters, " ")
+}
