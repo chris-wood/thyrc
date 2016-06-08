@@ -3,18 +3,21 @@ package client
 import (
     "fmt"
     "github.com/chris-wood/thyrc/message"
+    "github.com/chris-wood/thyrc/ui"
 )
 
 type Client struct {
     nick string
     pass string
+    ui *ui.ThyrcUI
+
     inputChannel chan *message.Message
     outputChannel chan *message.Message
 }
 
 // New creates a new instance of the Client object.
-func New(nick, pass string) *Client {
-	return &Client{nick: nick, pass: pass}
+func New(nick, pass string, ui *ui.ThyrcUI) *Client {
+	return &Client{nick: nick, pass: pass, ui: ui}
 }
 
 func (c *Client) Connect(inputChannel, outputChannel chan *message.Message) {
@@ -44,5 +47,6 @@ func (c *Client) Run() {
     for {
         msg := <-c.outputChannel
         fmt.Println(msg)
+        // TODO: pass this to the right channel
     }
 }

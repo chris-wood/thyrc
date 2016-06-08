@@ -7,6 +7,7 @@ import (
     "fmt"
     "github.com/chris-wood/thyrc/client"
     "github.com/chris-wood/thyrc/server"
+    "github.com/chris-wood/thyrc/ui"
 )
 
 func main() {
@@ -25,8 +26,13 @@ func main() {
         log.Fatalf("usage")
     }
 
+    // Create the UI
+    thyrcUI := ui.New()
+    channel := thyrcUI.GetInputChannel()
+    channel <- "test"
+
     // Create the client for this server
-    client := client.New("nonick", "nopass")
+    client := client.New("nonick", "nopass", thyrcUI)
 
     // Open a connection to the server
     serverAddress := args[0]
@@ -37,7 +43,7 @@ func main() {
 
     // Run the client
     client.Connect(input, output)
-    client.Run()
+    go client.Run()
 
     // err = runSession(args[0])
     // if err != nil {
