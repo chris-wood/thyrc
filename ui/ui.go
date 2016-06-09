@@ -42,7 +42,7 @@ func quit(g *gocui.Gui, v *gocui.View) error {
     return gocui.ErrQuit
 }
 
-func New() *ConsoleUI {
+func New() ThyrcUI {
     g := gocui.NewGui()
     if err := g.Init(); err != nil {
         log.Panicln(err)
@@ -56,16 +56,16 @@ func New() *ConsoleUI {
         log.Panicln(err)
     }
 
-    return &ConsoleUI{gui: g}
+    return ConsoleUI{gui: g}
 }
 
-func (ui *ConsoleUI) CreateWindow(windowName string) chan *message.Message {
+func (ui ConsoleUI) CreateWindow(windowName string) chan *message.Message {
     // TODO: create a new view here
     channel := make(chan *message.Message)
     return channel
 }
 
-func (ui *ConsoleUI) GetInputChannel() chan string {
+func (ui ConsoleUI) GetInputChannel() chan string {
     channel := make(chan string)
     return channel
 }

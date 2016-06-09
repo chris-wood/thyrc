@@ -9,14 +9,14 @@ import (
 type Client struct {
     nick string
     pass string
-    ui *ui.ThyrcUI
+    ui ui.ThyrcUI
 
     inputChannel chan *message.Message
     outputChannel chan *message.Message
 }
 
 // New creates a new instance of the Client object.
-func New(nick, pass string, ui *ui.ThyrcUI) *Client {
+func New(nick, pass string, ui ui.ThyrcUI) *Client {
 	return &Client{nick: nick, pass: pass, ui: ui}
 }
 
