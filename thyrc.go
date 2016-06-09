@@ -27,9 +27,7 @@ func main() {
     }
 
     // Create the UI
-    thyrcUI := ui.New()
-    channel := thyrcUI.GetInputChannel()
-    channel <- "test"
+    thyrcUI := ui.NewTextUI()
 
     // Create the client for this server
     client := client.New("nonick", "nopass", thyrcUI)
@@ -41,13 +39,6 @@ func main() {
     // Retrieve the server channels
     input, output := server.MakeChannels()
 
-    // Run the client
-    client.Connect(input, output)
-    go client.Run()
-
-    // err = runSession(args[0])
-    // if err != nil {
-    //     fmt.Fprintln(os.Stderr, "Failed.")
-    //     fmt.Fprintln(os.Stderr, "Error: " + string(err.Error()))
-    // }
+    // Run the client to completion
+    client.Run(input, output)
 }

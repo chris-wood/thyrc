@@ -1,8 +1,9 @@
 package ui
 
 import (
-    "log"
-    "github.com/jroimartin/gocui"
+    "os"
+    "bufio"
+    "fmt"
     "github.com/chris-wood/thyrc/message"
 )
 
@@ -11,61 +12,41 @@ type ThyrcUI interface {
     GetInputChannel() chan string
 }
 
-type ConsoleUI struct {
-    gui *gocui.Gui
+type TextUI struct {
+    channels []chan *message.Message
+    inputChannel chan string
 }
 
-func layout(g *gocui.Gui) error {
-    maxX, maxY := g.Size()
-
-    if _, err := g.SetView("main", 0, 0, maxX-1, maxY-5); err != nil {
-        if err != gocui.ErrUnknownView {
-            return err
+func (ui TextUI) handleUserInput() {
+    reader := bufio.NewReader(os.Stdin)
+    for {
+        fmt.Print("> ")
+        text, err := reader.ReadString('\n')
+        if err == nil {
+            ui.inputChannel <- text
         }
     }
-
-    if v, err := g.SetView("input", 0, maxY-5, maxX-1, maxY-1); err != nil {
-        if err != gocui.ErrUnknownView {
-            return err
-        }
-        if err := g.SetCurrentView("input"); err != nil {
-            return err
-        }
-        v.Editable = true
-        v.Wrap = true
-    }
-
-    return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-    return gocui.ErrQuit
+func NewTextUI() ThyrcUI {
+    textui := TextUI{inputChannel: make(chan string)}
+    go textui.handleUserInput()
+    return TextUI{}
 }
 
-func New() ThyrcUI {
-    g := gocui.NewGui()
-    if err := g.Init(); err != nil {
-        log.Panicln(err)
+func (ui TextUI) serveWindow(inputChannel chan *message.Message) {
+    for {
+        msg := <-inputChannel
+        fmt.Println(msg)
     }
-
-    g.SetLayout(layout)
-    if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-        log.Panicln(err)
-    }
-    if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-        log.Panicln(err)
-    }
-
-    return ConsoleUI{gui: g}
 }
 
-func (ui ConsoleUI) CreateWindow(windowName string) chan *message.Message {
-    // TODO: create a new view here
+func (ui TextUI) CreateWindow(windowName string) chan *message.Message {
     channel := make(chan *message.Message)
+    ui.channels = append(ui.channels, channel)
     return channel
 }
 
-func (ui ConsoleUI) GetInputChannel() chan string {
-    channel := make(chan string)
-    return channel
+func (ui TextUI) GetInputChannel() chan string {
+    return ui.inputChannel
 }
